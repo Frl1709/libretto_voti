@@ -1,7 +1,8 @@
-import operator
-from dataclasses import dataclass,field
+# from dataclasses import dataclass
 
 import dataclasses
+import operator
+
 
 @dataclasses.dataclass
 class Voto:
@@ -9,7 +10,7 @@ class Voto:
     cfu: int
     punteggio: int
     lode: bool
-    data: str = field(compare = False)
+    data: str
 
     def str_punteggio(self):
         """
@@ -24,14 +25,14 @@ class Voto:
             # return self.punteggio  NOOO
 
     def copy(self):
-        return Voto(self.esame, self.cfu, self.punteggio,self.lode,self.data)
+        return Voto(self.esame, self.cfu, self.punteggio, self.lode, self.data)
 
     def __str__(self):
-        return f"{self.esame} ({self.cfu} CFU): voto {self.str_punteggio()} il {self.data}"
+        return f'{self.esame} ({self.cfu} CFU): voto {self.str_punteggio()} il {self.data}'
+
 
 def estrai_campo_esame(v):
     return v.esame
-
 
 class Libretto:
     def __init__(self):
@@ -46,8 +47,9 @@ class Libretto:
     def media(self):
         if len(self._voti)==0:
             raise ValueError("Elenco voti vuoto")
-        punteggi = [v.punteggio for v in self._voti]
-        return sum(punteggi)/len(punteggi)
+        punteggi = [v.punteggio * v.cfu for v in self._voti]
+        cfu = [v.cfu for v in self._voti]
+        return sum(punteggi)/sum(cfu)
 
     def findByPunteggio(self, punteggio, lode):
         """
@@ -109,88 +111,103 @@ class Libretto:
                     return True
         return False
 
+
     def copy(self):
         nuovo = Libretto()
+        # nuovo._voti = self._voti.copy()
         for v in self._voti:
             nuovo._voti.append(v.copy())
         return nuovo
 
     def crea_migliorato(self):
-        nuovo = Libretto()
-        #NON FARE COSì
-        #nuovo._voti.copy()
-        for v in self._voti:
-            #nuovo._voti.append(Voto(v.esame,v.cfu,v.punteggio,v.lode,v.data))
-            nuovo._voti.append(v.copy())
+        """
+        Crea una copia del libretto e "migliora" i voti esso presenti.
+        :return:
+        """
+        nuovo = self.copy()
+        # nuovo._voti[0]    self._voti[0]
 
         for v in nuovo._voti:
-            if 18 <= v.punteggio <= 24:
-                v.punteggio +=1
-            elif 24 < v.punteggio <= 28:
-                v.punteggio +=2
+            if 18<= v.punteggio <= 23:
+                v.punteggio += 1
+            elif 24<=v.punteggio<=28:
+                v.punteggio += 2
             elif v.punteggio == 29:
                 v.punteggio = 30
 
         return nuovo
 
-    """
-        Opzione 1:
-        metodo stampa_per_nome e metodo stamp_per_punteggio, che semplicemente stampano e non modificano nulla
-
-        Opzione 2:
-        metodo crea_libretto_ordinato_per_nome e un metodo crea_libretto_ordinato_per_punteggio, che creano delle copie 
-        separate, sulle quali potrò chiamare il metodo stampa()
-
-        Opzione 3:
-        metodo ordina_per_nome. che modifica il libretto stesso riordinando i voti, e ordina_per_punteggio, poi 
-        userò stampa()
-        + aggiungiamo gratis un metodo copy()
-
-        Opzione 2bis:
-        crea una copia shallow del libretto
-        """
     def crea_ordinato_per_esame(self):
         nuovo = self.copy()
+        # ordina i nuovo._voti
         nuovo.ordina_per_esame()
         return nuovo
 
     def ordina_per_esame(self):
-        #self._voti.sort(key=estrai_campo_esame)
+        # ordina self._voti per nome esame
+        # self._voti.sort(key=estrai_campo_esame)
         self._voti.sort(key=operator.attrgetter('esame'))
-        #self._voti.sort(key=lambda v: v.esame)
-        #self._voti.sort()
+        # self._voti.sort(key=lambda v: v.esame)
+        # self._voti.sort()
 
     def crea_ordinato_per_punteggio(self):
         nuovo = self.copy()
-        self._voti.sort(key=lambda v: (v.punteggio,v.lode), reverse=True)
-
+        self._voti.sort(key=lambda v: (v.punteggio, v.lode), reverse=True)
+        return nuovo
 
     def stampa(self):
         print(f"Hai {len(self._voti)} voti")
         for v in self._voti:
             print(v)
-        print(f"La media vale {self.media()}")
+        print(f"La media vale {self.media():.2f}")
 
-    def cancella_inferiori(self, punteggio):
+    def stampaGUI(self):
+        outList = []
+        outList.append(f"Hai {len(self._voti)} voti")
         for v in self._voti:
-            if v.punteggio < punteggio:
-                self._voti.remove(v)
+            outList.append(v)
+        outList.append(f"La media vale {self.media():.2f}")
+        return outList
 
-        # Questo metodo è migliore dal punto di vista computazionale perchè mentre remove ricomincia
-        # sempre da capo della lista con gli indici posso continuare da dove mi ero fermato
-        for i in range(len(self._voti)):
-            if self._voti[i] < punteggio:
-                self._voti.pop(i)
-        # Il problema è che opero su una lista su cui sto iterando
-        # [18 18 18 30 30 30] --> [18 18 30 30 30] mi perdo il primo 18
-        # per risolvere il problema creo una lista con tutto ciò che non devo cancellare
+    def cancella_inferiori(self,punteggio):
+    #     for v in self._voti:
+    #         if v.punteggio < punteggio:
+    #             self._voti.remove(v)
+    #
+    #     for i in range(len(self._voti)):
+    #         if self._voti[i] < punteggio:
+    #             self._voti.pop(i)
+    # #   [18,  30, 30, 30 ]
+
+        """
         voti_nuovi = []
-        """for v in self._voti:
+        for v in self._voti:
             if v.punteggio >= punteggio:
                 voti_nuovi.append(v)
-        self._voti = voti_nuovi"""
+        self._voti = voti_nuovi
+        """
 
-        self._voti = [v for v in self._voti if v.punteggio >= punteggio]
+        self._voti = [ v for v in self._voti if v.punteggio >= punteggio ]
+
+
+"""
+Opzione 1:
+metodo stampa_per_nome e metodo stampa_per_punteggio, che semplicemente stampano e non modificano nulla
+
+Opzione 2:
+metodo crea_libretto_ordinato_per_nome, ed un metodo crea_libretto_ordinato_per_punteggio, che creano
+delle copie separate, sulle quali potrò chiamar il metodo stampa()
+
+Opzione 3:
+metodo ordina_per_nome, che modifica il libretto stesso riordinando i Voti, e ordina_per_punteggio, poi userò
+stampa()
++ aggiungiamo gratis un metodo copy()
+
+Opzione 2bis:
+crea una copia shallow del libretto
+
+"""
+
 
 def _test_voto():
     print(__name__)
